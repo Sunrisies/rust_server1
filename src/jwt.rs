@@ -16,6 +16,7 @@ pub struct Claims {
 /// JWT工具
 #[derive(Clone)]
 pub struct JwtUtil {
+    secret: String,
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
     expire_hours: i64,
@@ -24,10 +25,16 @@ pub struct JwtUtil {
 impl JwtUtil {
     pub fn new(config: &JwtConfig) -> Self {
         Self {
+            secret: config.secret.clone(),
             encoding_key: EncodingKey::from_secret(config.secret.as_bytes()),
             decoding_key: DecodingKey::from_secret(config.secret.as_bytes()),
             expire_hours: config.expire_hours as i64,
         }
+    }
+    
+    /// 获取密钥
+    pub fn secret_key(&self) -> &str {
+        &self.secret
     }
 
     /// 生成JWT Token

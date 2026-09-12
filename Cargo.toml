@@ -3,12 +3,16 @@ name = "rust_hover"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "rust_hover"
+path = "src/main.rs"
+
 [dependencies]
 # 异步运行时
 tokio = { version = "1", features = ["full"] }
 
 # Web框架
-axum = { version = "0.7", features = ["macros"] }
+axum = { version = "0.7", features = ["macros", "multipart"] }
 tower = { version = "0.4", features = ["full"] }
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 
@@ -39,6 +43,18 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # UUID
 uuid = { version = "1", features = ["v4", "serde"] }
+
+# 异步流
+futures-util = "0.3"
+
+# MongoDB
+mongodb = "2.8"
+
+# RSA加密
+rsa = "0.9"
+pkcs8 = "0.10"
+rand = "0.8"
+base64 = "0.21"
 
 # JWT
 jsonwebtoken = "9"

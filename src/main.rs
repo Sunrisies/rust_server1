@@ -3,8 +3,11 @@ mod database;
 mod error;
 mod jwt;
 mod middleware;
+mod models;
+mod mongodb;
 mod redis;
 mod routes;
+mod rsa_util;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tracing::{info, error};
@@ -63,6 +66,23 @@ async fn main() {
     let jwt = JwtUtil::new(&config.jwt);
     info!("JWT初始化完成");
 
+    // 初始化RSA工具
+    let _rsa = crate::rsa_util::init_rsa();
+    info!("RSA初始化完成");
+
+    // 初始化MongoDB（可选）
+    let mongodb_config = crate::mongodb::MongoDBConfig::from_env();
+    let mongodb = match crate::mongodb::init_mongodb(&mongodb_config).await {
+        Ok(mongodb) => {
+            info!("MongoDB初始化成功");
+            Some(mongodb)
+        }
+        Err(e) => {
+            info!("MongoDB初始化失败（可选）: {}", e);
+            None
+        }
+    };
+
     info!("========================================");
     info!("所有服务初始化完成，准备启动服务器...");
     info!("========================================");
@@ -72,10 +92,17 @@ async fn main() {
         db,
         redis,
         jwt,
+        mongodb,
     };
 
     // 创建路由
-    let app = create_router(state);
+    let app = create_router(state)
+        .layer(
+            tower_http::cors::CorsLayer::new()
+                .allow_origin(tower_http::cors::Any)
+                .allow_methods(tower_http::cors::Any)
+                .allow_headers(tower_http::cors::Any)
+        );
 
     // 启动服务器
     let addr = config.server_addr();

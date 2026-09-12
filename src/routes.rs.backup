@@ -38,64 +38,54 @@ pub fn create_router(state: AppState) -> Router {
         .route("/mango/shell", post(mango_shell))
         
         // 认证相关
-        .route("/login/register/login", post(login))
-        .route("/login/register/register", post(register))
-        .route("/login/register/getPublicKey", get(get_public_key))
-        .route("/login/register/verifyToken", get(verify_token))
-        .route("/login/register/logout", post(logout))
+        .route("/auth/login", post(login))
+        .route("/auth/register", post(register))
         .route("/register/verifyToken", get(verify_token))
         .route("/register/logout", post(logout))
         .route("/register/getPublicKey", get(get_public_key))
         
         // 用户相关
-        .route("/admin/user/list", get(list_users))
-        .route("/admin/user/queryAll", post(list_users))
-        .route("/admin/user/add", post(add_user))
-        .route("/admin/user/update", post(update_user))
-        .route("/admin/user/delete", post(delete_user))
-        .route("/admin/user/deleteUser", post(delete_user))
-        .route("/admin/user/update/account/profile", put(update_user_profile))
-        .route("/admin/user/update/account/password", put(update_user_password))
-        .route("/admin/user/update/account/profileAndPasswrd", put(update_user_profile_and_password))
-        .route("/admin/user/queryUserByUserName", post(query_user_by_username))
-        .route("/admin/user/queryUserByUserNameX", post(query_user_detail_by_username))
-        .route("/admin/user/bindBoat", post(bind_boat))
-        .route("/admin/user/notBindboat", post(unbind_boat))
-        .route("/admin/user/addUserAndRoleAndParim", post(add_user_with_role_and_permission))
-        .route("/admin/user/bindCommonPermission", post(bind_common_permission))
-        .route("/admin/user/notBindCommonPermission", post(unbind_common_permission))
-        .route("/admin/user/updateAutAndOrgAndRoleAndNodeByUser", post(update_user_roles_and_nodes))
+        .route("/user/list", get(list_users))
+        .route("/user/add", post(add_user))
+        .route("/user/update", put(update_user))
+        .route("/user/delete", delete(delete_user))
+        .route("/user/update/account/profile", put(update_user_profile))
+        .route("/user/update/account/password", put(update_user_password))
+        .route("/user/update/account/profileAndPasswrd", put(update_user_profile_and_password))
+        .route("/user/queryUserByUserName", post(query_user_by_username))
+        .route("/user/queryUserByUserNameX", post(query_user_detail_by_username))
+        .route("/user/bindBoat", post(bind_boat))
+        .route("/user/notBindboat", post(unbind_boat))
+        .route("/user/addUserAndRoleAndParim", post(add_user_with_role_and_permission))
+        .route("/user/bindCommonPermission", post(bind_common_permission))
+        .route("/user/notBindCommonPermission", post(unbind_common_permission))
+        .route("/user/updateAutAndOrgAndRoleAndNodeByUser", post(update_user_roles_and_nodes))
         
         // 船只高级查询
-        .route("/admin/node/queryAllByUserAndOrganization", get(query_nodes_by_user_and_organization))
-        .route("/admin/node/queryNodeAndFunctionByUserId", get(query_nodes_and_functions_by_user_id))
-        .route("/admin/node/queryOnlineDataByUser", get(query_online_nodes_by_user))
-        .route("/admin/node/queryNodeStatusByTcpport", post(query_node_status_by_tcp_port))
+        .route("/node/queryAllByUserAndOrganization", get(query_nodes_by_user_and_organization))
+        .route("/node/queryNodeAndFunctionByUserId", get(query_nodes_and_functions_by_user_id))
+        .route("/node/queryOnlineDataByUser", get(query_online_nodes_by_user))
+        .route("/node/queryNodeStatusByTcpport", post(query_node_status_by_tcp_port))
         
         // 权限管理
-        .route("/admin/permission/add", post(add_permission))
-        .route("/admin/permission/updatePermission", post(update_permission))
-        .route("/admin/permission/deletePermission", post(delete_permission))
-        .route("/admin/permission/queryAll", post(query_all_permissions))
+        .route("/permission/add", post(add_permission))
+        .route("/permission/updatePermission", put(update_permission))
+        .route("/permission/deletePermission", delete(delete_permission))
+        .route("/permission/queryAll", post(query_all_permissions))
         
         // 模块管理
-        .route("/admin/module/add", post(add_module))
-        .route("/admin/module/updateModule", post(update_module))
-        .route("/admin/module/deleteModule", post(delete_module))
-        .route("/admin/module/queryAll", post(query_all_modules))
-        .route("/admin/module/addModulePermission", post(add_module_permission))
-        .route("/admin/module/queryModulePermission", post(query_module_permissions))
-        .route("/admin/module/deleteModulePermission", post(delete_module_permission))
+        .route("/module/add", post(add_module))
+        .route("/module/updateModule", put(update_module))
+        .route("/module/deleteModule", delete(delete_module))
+        .route("/module/queryAll", post(query_all_modules))
+        .route("/module/addModulePermission", post(add_module_permission))
+        .route("/module/queryModulePermission", post(query_module_permissions))
+        .route("/module/deleteModulePermission", delete(delete_module_permission))
         
         // 白名单管理
-        .route("/admin/whitelist/add", post(add_whitelist))
-        .route("/admin/whitelist/remove", post(remove_whitelist))
-        .route("/admin/whitelist/queryAll", post(query_all_whitelist))
-        // APP管理
-        .route("/admin/app/queryAll", post(query_all_app_records))
-        .route("/admin/app/addRecord", post(add_app_record))
-        .route("/admin/app/deleteRecord", post(delete_app_record))
-        .route("/admin/app/queryNewVersion", post(query_latest_app_version))
+        .route("/whitelist/add", post(add_whitelist))
+        .route("/whitelist/remove", post(remove_whitelist))
+        .route("/whitelist/queryAll", get(query_all_whitelist))
         
         // 文件服务
         .route("/fileserver/upload/uploadLogo", post(upload_logo))
@@ -115,40 +105,26 @@ pub fn create_router(state: AppState) -> Router {
         .route("/app/queryNewVersion", post(query_latest_app_version))
         
         // 船只相关
-        .route("/admin/node/list", get(list_nodes))
-        .route("/admin/node/detail", get(get_node))
-        .route("/admin/node/add", post(add_node))
-        .route("/admin/node/addNode", post(add_node))
-        .route("/admin/node/update", post(update_node))
-        .route("/admin/node/updataNode", post(update_node))
-        .route("/admin/node/delete", post(delete_node))
-        .route("/admin/node/deteleNode", post(delete_node))
-        .route("/admin/node/updateLocation", put(update_node_location))
-        .route("/admin/node/queryAll", get(list_nodes))
-        .route("/admin/node/queryAllNode", post(list_nodes))
-        .route("/admin/node/queryNodeAll", post(list_nodes))  // 兼容旧接口
-        .route("/admin/node/queryNodeByUser", post(list_nodes))
+        .route("/node/list", get(list_nodes))
+        .route("/node/detail", get(get_node))
+        .route("/node/add", post(add_node))
+        .route("/node/update", put(update_node))
+        .route("/node/delete", delete(delete_node))
+        .route("/node/updateLocation", put(update_node_location))
+        .route("/node/queryAll", get(list_nodes))  // 兼容旧接口
         
         // 船只参数相关
-        .route("/admin/node/parameter/list", get(list_node_parameters))
-        .route("/admin/node/parameter/update", post(update_node_parameter))
-        .route("/admin/node/parameter/queryAll", get(query_all_node_parameters))
-        .route("/admin/node/parameter/addParameter", post(add_node_parameter))
-        .route("/admin/node/parameter/updateParameter", post(update_node_parameter_full))
-        .route("/admin/node/parameter/deleteParameter", post(delete_node_parameter_full))
-        .route("/admin/node/parameter/bindingParameterAndNode", post(bind_parameter_to_node))
-        .route("/admin/node/parameter/unbindParameterAndNode", post(unbind_parameter_from_node))
-        // 兼容前端 /admin/parameter/ 路径
-        .route("/admin/parameter/queryParameter", post(query_parameter))
-        .route("/admin/parameter/queryParameterAll", post(query_all_node_parameters))
-        .route("/admin/parameter/addParameter", post(add_node_parameter))
-        .route("/admin/parameter/updateParameter", post(update_node_parameter_full))
-        .route("/admin/parameter/deleteParameter", post(delete_node_parameter_full))
-        .route("/admin/parameter/bindingParameterAndNode", post(bind_parameter_to_node))
-        .route("/admin/parameter/unbindParameterAndNode", post(unbind_parameter_from_node))
+        .route("/node/parameter/list", get(list_node_parameters))
+        .route("/node/parameter/update", post(update_node_parameter))
+        .route("/node/parameter/queryAll", get(query_all_node_parameters))
+        .route("/node/parameter/addParameter", post(add_node_parameter))
+        .route("/node/parameter/updateParameter", put(update_node_parameter_full))
+        .route("/node/parameter/deleteParameter", delete(delete_node_parameter_full))
+        .route("/node/parameter/bindingParameterAndNode", post(bind_parameter_to_node))
+        .route("/node/parameter/unbindParameterAndNode", post(unbind_parameter_from_node))
         
         // 用户船只关联
-        .route("/admin/user/node/list", get(list_user_nodes))
+        .route("/user/node/list", get(list_user_nodes))
         
         // 区块任务相关
         .route("/blockPlan/list", get(list_block_plans))
@@ -164,23 +140,23 @@ pub fn create_router(state: AppState) -> Router {
         .route("/mavlinkOperation/updateDockyard", put(update_dockyard))
         
         // 船只功能管理
-        .route("/admin/nodeFuncation/addNodeFuncation", post(add_node_function))
-        .route("/admin/nodeFuncation/updateNodeFuncation", post(update_node_function))
-        .route("/admin/nodeFuncation/deleteNodeFuncation", post(delete_node_function))
-        .route("/admin/nodeFuncation/queryNodeFuncation", post(query_node_functions))
-        .route("/admin/nodeFuncation/queryNodeFuncationById", post(query_node_functions_by_node_id))
-        .route("/admin/nodeFuncation/queryNodeFuncationByTaskId", post(query_node_functions_by_task_id))
-        .route("/admin/nodeFuncation/addNodeFunAndNode", post(add_node_function_binding))
-        .route("/admin/nodeFuncation/deleteNodeFunAndNodeByNodeIdAndFunId", post(delete_node_function_binding))
+        .route("/nodeFuncation/addNodeFuncation", post(add_node_function))
+        .route("/nodeFuncation/updateNodeFuncation", put(update_node_function))
+        .route("/nodeFuncation/deleteNodeFuncation", delete(delete_node_function))
+        .route("/nodeFuncation/queryNodeFuncation", post(query_node_functions))
+        .route("/nodeFuncation/queryNodeFuncationById", post(query_node_functions_by_node_id))
+        .route("/nodeFuncation/queryNodeFuncationByTaskId", post(query_node_functions_by_task_id))
+        .route("/nodeFuncation/addNodeFunAndNode", post(add_node_function_binding))
+        .route("/nodeFuncation/deleteNodeFunAndNodeByNodeIdAndFunId", post(delete_node_function_binding))
         
         // 船只权限管理
-        .route("/admin/nodePermissions/addNodePermission", post(add_node_permission))
-        .route("/admin/nodePermissions/updateNodePermission", post(update_node_permission))
-        .route("/admin/nodePermissions/deleteNodePermission", post(delete_node_permission))
-        .route("/admin/nodePermissions/queryNodePermissionsAll", post(query_node_permissions))
-        .route("/admin/nodePermissions/queryNodePermissionsByNodeId", post(query_node_permissions_by_node_id))
-        .route("/admin/nodePermissions/addNodePerAndNode", post(add_node_permission_binding))
-        .route("/admin/nodePermissions/deleteNodePerAndNodeByNodeIdAndPerId", post(delete_node_permission_binding))
+        .route("/nodePermissions/addNodePermission", post(add_node_permission))
+        .route("/nodePermissions/updateNodePermission", put(update_node_permission))
+        .route("/nodePermissions/deleteNodePermission", delete(delete_node_permission))
+        .route("/nodePermissions/queryNodePermissionsAll", post(query_node_permissions))
+        .route("/nodePermissions/queryNodePermissionsByNodeId", post(query_node_permissions_by_node_id))
+        .route("/nodePermissions/addNodePerAndNode", post(add_node_permission_binding))
+        .route("/nodePermissions/deleteNodePerAndNodeByNodeIdAndPerId", post(delete_node_permission_binding))
         
         .with_state(state)
 }
@@ -199,9 +175,7 @@ async fn health_check() -> Json<serde_json::Value> {
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
-    #[serde(alias = "userName", alias = "username")]
     pub username: String,
-    #[serde(alias = "passWord", alias = "password")]
     pub password: String,
 }
 
@@ -215,7 +189,7 @@ pub struct LoginResponse {
 async fn login(
     State(state): State<AppState>,
     Json(req): Json<LoginRequest>,
-) -> Result<Json<ApiResponse<LoginResponse>>, AppError> {
+) -> Result<Json<LoginResponse>, AppError> {
     // 查询用户
     let user: (String, String, String) = sqlx::query_as(
         "SELECT id, username, password FROM tb_user WHERE username = ?"
@@ -242,11 +216,11 @@ async fn login(
     let token = state.jwt.generate_token(&user.0, &user.1)
         .map_err(|e| AppError::Internal(anyhow::anyhow!("Token生成失败: {}", e)))?;
 
-    Ok(Json(ApiResponse::success(LoginResponse {
+    Ok(Json(LoginResponse {
         token,
         user_id: user.0,
         username: user.1,
-    })))
+    }))
 }
 
 #[derive(Deserialize)]
@@ -3828,91 +3802,5 @@ async fn mango_shell() -> Result<Json<ApiResponse<serde_json::Value>>, AppError>
                 "message": e.to_string(),
             }))))
         }
-    }
-}
-
-/// 根据用户查询船只（兼容前端接口）
-async fn query_node_by_user(
-    State(state): State<AppState>,
-    Json(params): Json<serde_json::Value>,
-) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, AppError> {
-    let user_id = params.get("id")
-        .and_then(|v| v.as_str())
-        .or_else(|| params.get("userId").and_then(|v| v.as_str()));
-    
-    if let Some(uid) = user_id {
-        let nodes: Vec<(String, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, Option<String>)> = sqlx::query_as(
-            "SELECT n.id, n.sname, n.ip, n.port, n.state, n.taskid, n.describes 
-             FROM tb_node n 
-             INNER JOIN tb_user_node un ON n.id = un.nodeid 
-             WHERE un.userid = ? AND (un.removecode IS NULL OR un.removecode = 1)"
-        )
-        .bind(uid)
-        .fetch_all(&state.db.pool)
-        .await?;
-
-        let nodes_json: Vec<serde_json::Value> = nodes.iter().map(|n| {
-            serde_json::json!({
-                "id": n.0,
-                "sname": n.1,
-                "ip": n.2,
-                "port": n.3,
-                "state": n.4,
-                "taskid": n.5,
-                "describes": n.6,
-            })
-        }).collect();
-
-        Ok(Json(ApiResponse::success(nodes_json)))
-    } else {
-        Ok(Json(ApiResponse::success(Vec::new())))
-    }
-}
-
-// ==================== 参数管理兼容路由 ====================
-async fn query_parameter(
-    State(state): State<AppState>,
-    Json(params): Json<serde_json::Value>,
-) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, AppError> {
-    let node_id = params.get("nodeId")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    
-    if node_id.is_empty() {
-        // 查询所有参数
-        let parameters: Vec<(String, Option<String>, Option<String>, Option<String>)> = sqlx::query_as(
-            "SELECT id, name, code, hcode FROM tb_node_parameter"
-        )
-        .fetch_all(&state.db.pool)
-        .await?;
-
-        let result: Vec<serde_json::Value> = parameters.iter().map(|p| {
-            serde_json::json!({
-                "id": p.0,
-                "name": p.1,
-                "code": p.2,
-                "hcode": p.3,
-            })
-        }).collect();
-
-        Ok(Json(ApiResponse::success(result)))
-    } else {
-        // 根据节点ID查询参数
-        let parameters: Vec<(String, Option<String>, Option<String>)> = sqlx::query_as(
-            "SELECT id, nodeid, npid FROM tb_node_and_node_parameter WHERE nodeid = ?"
-        )
-        .bind(node_id)
-        .fetch_all(&state.db.pool)
-        .await?;
-
-        let result: Vec<serde_json::Value> = parameters.iter().map(|p| {
-            serde_json::json!({
-                "id": p.0,
-                "node_id": p.1,
-                "npid": p.2,
-            })
-        }).collect();
-
-        Ok(Json(ApiResponse::success(result)))
     }
 }

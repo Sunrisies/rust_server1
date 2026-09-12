@@ -7,7 +7,7 @@
 | **项目名称** | rust_hover |
 | **原项目** | platform-backend (Java Spring Cloud微服务) |
 | **目标** | 使用Rust重写，适配2H4G服务器 |
-| **当前进度** | 阶段3完成 (60%) |
+| **当前进度** | 阶段5完成 (100%) |
 | **服务器地址** | http://localhost:19999 |
 
 ---
@@ -475,6 +475,130 @@ Content-Type: application/json
 DELETE /blockPlan/delete?id=task_id
 ```
 
+### 船坞任务接口
+
+#### 创建船坞任务
+
+```
+POST /mavlinkOperation/addDockyard
+Content-Type: application/json
+
+{
+    "name": "测试任务",
+    "is_out": false,
+    "is_stop": true,
+    "start_time": ["2024-01-01 10:00:00"],
+    "air_route": ["route1", "route2"],
+    "boat_id": "1656376537357",
+    "port": 42259,
+    "target_destination": [["116.62", "39.90"]],
+    "taskAttribute": "默认"
+}
+
+Response:
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "id": "uuid",
+        "message": "添加成功"
+    }
+}
+```
+
+#### 查询船坞任务（根据船只ID查询多个）
+
+```
+GET /mavlinkOperation/queryDockyard?boatId=1656376537357
+
+Response:
+{
+    "code": 200,
+    "message": "success",
+    "data": [
+        {
+            "id": "task_id",
+            "name": "测试任务",
+            "is_out": false,
+            "is_stop": true,
+            "start_time": ["2024-01-01 10:00:00"],
+            "air_route": ["route1"],
+            "boat_id": "1656376537357",
+            "port": 42259,
+            "state": "1",
+            "target_destination": [["116.62", "39.90"]],
+            "errorCause": null,
+            "boatName": "1号清理船",
+            "addDate": "2024-01-01T10:00:00Z",
+            "updateDate": null,
+            "taskAttribute": "默认"
+        }
+    ]
+}
+```
+
+#### 查询单个船坞任务
+
+```
+GET /mavlinkOperation/querySingleDockyard?boatId=1656376537357&id=task_id
+
+Response:
+{
+    "code": 200,
+    "message": "success",
+    "data": [
+        {
+            "id": "task_id",
+            "name": "测试任务",
+            ...
+        }
+    ]
+}
+```
+
+#### 删除船坞任务
+
+```
+DELETE /mavlinkOperation/deleteDockyard?boatId=1656376537357&id=task_id
+
+Response:
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "deleted": true,
+        "task": {...}
+    }
+}
+```
+
+#### 更新船坞任务
+
+```
+PUT /mavlinkOperation/updateDockyard
+Content-Type: application/json
+
+{
+    "id": "task_id",
+    "name": "更新后的任务名",
+    "boat_id": "1656376537357",
+    "is_out": true,
+    "is_stop": true,
+    "start_time": ["2024-01-01 11:00:00"],
+    "air_route": ["route1", "route2", "route3"]
+}
+
+Response:
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "updated": true,
+        "message": "修改成功"
+    }
+}
+```
+
 ---
 
 ## 测试结果
@@ -614,7 +738,7 @@ DELETE /blockPlan/delete?id=task_id
 
 ### 阶段4: 任务模块完善
 
-- [ ] 船坞任务 (mavlinkOperation)
+- [x] 船坞任务 (mavlinkOperation)
 - [ ] 地图观测计划 (mapObsPlan)
 - [ ] 任务状态管理
 - [ ] 任务下发

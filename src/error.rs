@@ -35,53 +35,71 @@ impl IntoResponse for AppError {
         let (status, message) = match &self {
             AppError::Database(e) => {
                 tracing::error!("数据库错误: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "服务器内部错误".to_string())
+                (StatusCode::OK, "服务器内部错误".to_string())
             }
             AppError::Redis(e) => {
                 tracing::error!("Redis错误: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "服务器内部错误".to_string())
+                (StatusCode::OK, "服务器内部错误".to_string())
             }
-            AppError::Auth(msg) => (StatusCode::UNAUTHORIZED, msg.clone()),
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg.clone()),
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
-            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg.clone()),
+            AppError::Auth(msg) => (StatusCode::OK, msg.clone()),
+            AppError::NotFound(msg) => (StatusCode::OK, msg.clone()),
+            AppError::BadRequest(msg) => (StatusCode::OK, msg.clone()),
+            AppError::Forbidden(msg) => (StatusCode::OK, msg.clone()),
             AppError::Internal(e) => {
                 tracing::error!("内部错误: {}", e);
-                (StatusCode::INTERNAL_SERVER_ERROR, "服务器内部错误".to_string())
+                (StatusCode::OK, "服务器内部错误".to_string())
             }
         };
 
+        // 匹配Java版本的错误响应格式
         let body = Json(json!({
-            "code": status.as_u16(),
-            "message": message,
+            "code": 0,
+            "msg": message,
         }));
 
         (status, body).into_response()
     }
 }
 
-/// 统一响应结构
+/// 统一响应结构（匹配Java版本的LayUiTableTemplateLay）
 #[derive(Debug, serde::Serialize)]
 pub struct ApiResponse<T: serde::Serialize> {
-    pub code: u16,
+    pub code: i32,  // 1表示成功，0表示失败
+    #[serde(rename = "msg")]
     pub message: String,
     pub data: Option<T>,
+    pub count: Option<i32>,
+    pub obj: Option<serde_json::Value>,
 }
 
 impl<T: serde::Serialize> ApiResponse<T> {
     pub fn success(data: T) -> Self {
         Self {
-            code: 200,
+            code: 1,
             message: "success".to_string(),
             data: Some(data),
+            count: None,
+            obj: None,
         }
     }
 
-    pub fn error(code: u16, message: impl Into<String>) -> Self {
+    pub fn success_with_count(data: T, count: i32) -> Self {
+        Self {
+            code: 1,
+            message: "success".to_string(),
+            data: Some(data),
+            count: Some(count),
+            obj: None,
+        }
+    }
+
+    pub fn error(code: i32, message: impl Into<String>) -> Self {
         Self {
             code,
             message: message.into(),
             data: None,
+            count: None,
+            obj: None,
         }
     }
 }

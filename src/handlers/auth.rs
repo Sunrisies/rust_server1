@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, ApiResponse};
 use crate::routes::AppState;
+use tracing::{info, error};
 
 /// 登录请求
 #[derive(Deserialize)]
@@ -49,15 +50,19 @@ pub async fn login(
     }
     
     // 解密密码（支持RSA和明文）
-    let decrypted_pwd = if login_message.password.len() > 100 && login_message.password.contains("AA") {
+    let decrypted_pwd = if login_message.password.len() > 50 {
+        // 可能是RSA加密的密码，尝试解密
         match crate::rsa_util::get_rsa_util().decrypt(&login_message.password) {
             Ok(pwd) => pwd,
-            Err(_) => login_message.password.clone(),
+            Err(_) => {
+                // 解密失败，可能是明文密码
+                login_message.password.clone()
+            }
         }
     } else {
+        // 明文密码
         login_message.password.clone()
     };
-    
     // 查询用户
     let user_row: Option<sqlx::mysql::MySqlRow> = sqlx::query(
         "SELECT id, username, password, nickname, logo, moduleids, history_url, realtime_url, workspace_id FROM tb_user WHERE username = ?"
@@ -86,6 +91,7 @@ pub async fn login(
     let history_url: Option<String> = user_row.try_get("history_url").ok();
     let realtime_url: Option<String> = user_row.try_get("realtime_url").ok();
     let workspace_id: Option<String> = user_row.try_get("workspace_id").ok();
+    info!("查询{},---{}",password,decrypted_pwd);
     
     // 验证密码
     let password_valid = if password.starts_with("$2") {

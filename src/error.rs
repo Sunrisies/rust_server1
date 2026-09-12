@@ -28,6 +28,9 @@ pub enum AppError {
 
     #[error("内部错误: {0}")]
     Internal(#[from] anyhow::Error),
+    
+    #[error("序列化错误: {0}")]
+    Serialization(#[from] serde_json::Error),
 }
 
 impl IntoResponse for AppError {
@@ -48,6 +51,10 @@ impl IntoResponse for AppError {
             AppError::Internal(e) => {
                 tracing::error!("内部错误: {}", e);
                 (StatusCode::OK, "服务器内部错误".to_string())
+            }
+            AppError::Serialization(e) => {
+                tracing::error!("序列化错误: {}", e);
+                (StatusCode::OK, "序列化错误".to_string())
             }
         };
 

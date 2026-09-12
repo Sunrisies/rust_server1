@@ -30,6 +30,17 @@ impl RsaUtil {
             .expect("failed to encode public key")
     }
     
+    /// 加密数据
+    pub fn encrypt(&self, data: &str) -> Result<String, Box<dyn std::error::Error>> {
+        use base64::Engine;
+        use base64::engine::general_purpose::STANDARD;
+        
+        let mut rng = thread_rng();
+        let data_bytes = data.as_bytes();
+        let encrypted_data = self.public_key.encrypt(&mut rng, Pkcs1v15Encrypt, &data_bytes)?;
+        Ok(STANDARD.encode(encrypted_data))
+    }
+    
     /// 解密数据
     pub fn decrypt(&self, encrypted_data: &str) -> Result<String, Box<dyn std::error::Error>> {
         use base64::Engine;

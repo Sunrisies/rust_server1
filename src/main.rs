@@ -8,6 +8,8 @@ mod mongodb;
 mod redis;
 mod routes;
 mod rsa_util;
+mod session;
+mod handlers;
 
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use tracing::{info, error};
@@ -69,6 +71,10 @@ async fn main() {
     // 初始化RSA工具
     let _rsa = crate::rsa_util::init_rsa();
     info!("RSA初始化完成");
+
+    // 初始化Session
+    let _session = crate::session::init_session(redis.clone());
+    info!("Session初始化完成");
 
     // 初始化MongoDB（可选）
     let mongodb_config = crate::mongodb::MongoDBConfig::from_env();

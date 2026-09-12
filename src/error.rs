@@ -76,7 +76,7 @@ impl<T: serde::Serialize> ApiResponse<T> {
     pub fn success(data: T) -> Self {
         Self {
             code: 1,
-            message: "success".to_string(),
+            message: "".to_string(),
             data: Some(data),
             count: None,
             obj: None,
@@ -86,7 +86,7 @@ impl<T: serde::Serialize> ApiResponse<T> {
     pub fn success_with_count(data: T, count: i32) -> Self {
         Self {
             code: 1,
-            message: "success".to_string(),
+            message: "".to_string(),
             data: Some(data),
             count: Some(count),
             obj: None,

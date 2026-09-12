@@ -38,9 +38,25 @@ pub fn create_router(state: AppState) -> Router {
         
         // 船只相关
         .route("/node/list", get(list_nodes))
+        .route("/node/detail", get(get_node))
         .route("/node/add", post(add_node))
         .route("/node/update", put(update_node))
         .route("/node/delete", delete(delete_node))
+        .route("/node/updateLocation", put(update_node_location))
+        .route("/node/queryAll", get(list_nodes))  // 兼容旧接口
+        
+        // 船只参数相关
+        .route("/node/parameter/list", get(list_node_parameters))
+        .route("/node/parameter/update", post(update_node_parameter))
+        
+        // 用户船只关联
+        .route("/user/node/list", get(list_user_nodes))
+        
+        // 区块任务相关
+        .route("/blockPlan/list", get(list_block_plans))
+        .route("/blockPlan/add", post(add_block_plan))
+        .route("/blockPlan/update", put(update_block_plan))
+        .route("/blockPlan/delete", delete(delete_block_plan))
         
         .with_state(state)
 }
@@ -254,13 +270,28 @@ pub struct NodeItem {
     pub port: Option<String>,
     pub state: Option<String>,
     pub task_id: Option<String>,
+    pub describes: Option<String>,
+}
+
+#[derive(Debug, FromRow, Serialize)]
+pub struct NodeDetail {
+    pub id: String,
+    pub sname: String,
+    pub ip: Option<String>,
+    pub port: Option<String>,
+    pub url: Option<String>,
+    pub state: Option<String>,
+    pub task_id: Option<String>,
+    pub tcp_port: Option<String>,
+    pub describes: Option<String>,
+    pub remote_port: Option<String>,
 }
 
 async fn list_nodes(
     State(state): State<AppState>,
 ) -> Result<Json<ApiResponse<Vec<NodeItem>>>, AppError> {
     let nodes: Vec<NodeItem> = sqlx::query_as(
-        "SELECT id, sname, ip, port, state, taskid as task_id FROM tb_node"
+        "SELECT id, sname, ip, port, state, taskid as task_id, describes FROM tb_node"
     )
     .fetch_all(&state.db.pool)
     .await?;
@@ -268,11 +299,30 @@ async fn list_nodes(
     Ok(Json(ApiResponse::success(nodes)))
 }
 
+async fn get_node(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<NodeDetail>>, AppError> {
+    let id = params.get("id")
+        .ok_or_else(|| AppError::BadRequest("缺少id参数".to_string()))?;
+
+    let node: NodeDetail = sqlx::query_as(
+        "SELECT id, sname, ip, port, url, state, taskid as task_id, tcpPort as tcp_port, describes, remote_port FROM tb_node WHERE id = ?"
+    )
+    .bind(id)
+    .fetch_optional(&state.db.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("船只不存在".to_string()))?;
+
+    Ok(Json(ApiResponse::success(node)))
+}
+
 #[derive(Deserialize)]
 pub struct AddNodeRequest {
     pub sname: String,
     pub ip: Option<String>,
     pub port: Option<String>,
+    pub describes: Option<String>,
 }
 
 async fn add_node(
@@ -282,12 +332,13 @@ async fn add_node(
     let node_id = uuid::Uuid::new_v4().to_string();
 
     sqlx::query(
-        "INSERT INTO tb_node (id, sname, ip, port, state) VALUES (?, ?, ?, ?, 'offline')"
+        "INSERT INTO tb_node (id, sname, ip, port, state, describes) VALUES (?, ?, ?, ?, 'offline', ?)"
     )
     .bind(&node_id)
     .bind(&req.sname)
     .bind(&req.ip)
     .bind(&req.port)
+    .bind(&req.describes)
     .execute(&state.db.pool)
     .await?;
 
@@ -303,6 +354,7 @@ pub struct UpdateNodeRequest {
     pub ip: Option<String>,
     pub port: Option<String>,
     pub state: Option<String>,
+    pub describes: Option<String>,
 }
 
 async fn update_node(
@@ -310,12 +362,13 @@ async fn update_node(
     Json(req): Json<UpdateNodeRequest>,
 ) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
     sqlx::query(
-        "UPDATE tb_node SET sname = COALESCE(?, sname), ip = COALESCE(?, ip), port = COALESCE(?, port), state = COALESCE(?, state) WHERE id = ?"
+        "UPDATE tb_node SET sname = COALESCE(?, sname), ip = COALESCE(?, ip), port = COALESCE(?, port), state = COALESCE(?, state), describes = COALESCE(?, describes) WHERE id = ?"
     )
     .bind(&req.sname)
     .bind(&req.ip)
     .bind(&req.port)
     .bind(&req.state)
+    .bind(&req.describes)
     .bind(&req.id)
     .execute(&state.db.pool)
     .await?;
@@ -333,6 +386,305 @@ async fn delete_node(
         .ok_or_else(|| AppError::BadRequest("缺少id参数".to_string()))?;
 
     sqlx::query("DELETE FROM tb_node WHERE id = ?")
+        .bind(id)
+        .execute(&state.db.pool)
+        .await?;
+
+    Ok(Json(ApiResponse::success(serde_json::json!({
+        "deleted": true,
+    }))))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateLocationRequest {
+    pub id: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+async fn update_node_location(
+    State(state): State<AppState>,
+    Json(req): Json<UpdateLocationRequest>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    // 插入位置记录 (使用实际表结构: id, latitude, longitude, update_time)
+    let location_id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO tb_node_location (id, latitude, longitude, update_time) VALUES (?, ?, ?, NOW())"
+    )
+    .bind(&location_id)
+    .bind(req.latitude)
+    .bind(req.longitude)
+    .execute(&state.db.pool)
+    .await?;
+
+    Ok(Json(ApiResponse::success(serde_json::json!({
+        "updated": true,
+    }))))
+}
+
+// ==================== 船只参数相关 ====================
+
+#[derive(Debug, FromRow, Serialize)]
+pub struct NodeParameterItem {
+    pub id: String,
+    pub node_id: String,
+    pub name: String,
+    pub value: Option<String>,
+    pub code: Option<String>,
+}
+
+async fn list_node_parameters(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, AppError> {
+    let node_id = params.get("nodeId")
+        .ok_or_else(|| AppError::BadRequest("缺少nodeId参数".to_string()))?;
+
+    // 使用实际表结构: id, nodeid, npid, removecode
+    let rows: Vec<(String, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, nodeid, npid FROM tb_node_and_node_parameter WHERE nodeid = ?"
+    )
+    .bind(node_id)
+    .fetch_all(&state.db.pool)
+    .await?;
+
+    // 转换为统一格式
+    let result: Vec<serde_json::Value> = rows.iter().map(|r| {
+        serde_json::json!({
+            "id": r.0,
+            "node_id": r.1,
+            "npid": r.2,
+        })
+    }).collect();
+
+    Ok(Json(ApiResponse::success(result)))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateParameterRequest {
+    pub id: Option<String>,
+    pub node_id: String,
+    pub name: String,
+    pub value: Option<String>,
+    pub code: Option<String>,
+}
+
+async fn update_node_parameter(
+    State(state): State<AppState>,
+    Json(req): Json<UpdateParameterRequest>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    if let Some(id) = &req.id {
+        // 更新现有参数
+        sqlx::query(
+            "UPDATE tb_node_and_node_parameter SET value = ?, code = ? WHERE id = ?"
+        )
+        .bind(&req.value)
+        .bind(&req.code)
+        .bind(id)
+        .execute(&state.db.pool)
+        .await?;
+    } else {
+        // 插入新参数
+        let param_id = uuid::Uuid::new_v4().to_string();
+        sqlx::query(
+            "INSERT INTO tb_node_and_node_parameter (id, nodeid, name, value, code) VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind(&param_id)
+        .bind(&req.node_id)
+        .bind(&req.name)
+        .bind(&req.value)
+        .bind(&req.code)
+        .execute(&state.db.pool)
+        .await?;
+    }
+
+    Ok(Json(ApiResponse::success(serde_json::json!({
+        "updated": true,
+    }))))
+}
+
+// ==================== 用户船只关联 ====================
+
+#[derive(Debug, FromRow, Serialize)]
+pub struct UserNodeItem {
+    pub id: String,
+    pub user_id: String,
+    pub node_id: String,
+    pub node_name: Option<String>,
+}
+
+async fn list_user_nodes(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, AppError> {
+    let user_id = params.get("userId")
+        .ok_or_else(|| AppError::BadRequest("缺少userId参数".to_string()))?;
+
+    // 使用实际表结构: id, userid, nodeid, removecode
+    let rows: Vec<(String, String, String)> = sqlx::query_as(
+        "SELECT un.id, un.userid, un.nodeid 
+         FROM tb_user_node un 
+         WHERE un.userid = ?"
+    )
+    .bind(user_id)
+    .fetch_all(&state.db.pool)
+    .await?;
+
+    // 获取船只名称
+    let mut result = Vec::new();
+    for r in rows {
+        let node_name: Option<String> = sqlx::query_scalar(
+            "SELECT sname FROM tb_node WHERE id = ?"
+        )
+        .bind(&r.2)
+        .fetch_optional(&state.db.pool)
+        .await?;
+        
+        result.push(serde_json::json!({
+            "id": r.0,
+            "user_id": r.1,
+            "node_id": r.2,
+            "node_name": node_name,
+        }));
+    }
+
+    Ok(Json(ApiResponse::success(result)))
+}
+
+// ==================== 区块任务相关 ====================
+
+#[derive(Debug, FromRow, Serialize)]
+pub struct BlockPlanItem {
+    pub id: String,
+    pub boat_id: Option<String>,
+    pub task_name: Option<String>,
+    pub course_spacing: Option<f64>,
+    pub course_angle: Option<f64>,
+    pub complete_action: Option<String>,
+    pub add_time: Option<String>,
+}
+
+async fn list_block_plans(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, AppError> {
+    let boat_id = params.get("boatId");
+    
+    // 简单查询，只返回基本信息
+    let rows: Vec<(String, Option<String>, Option<String>)> = if let Some(boat_id) = boat_id {
+        sqlx::query_as(
+            "SELECT id, boat_id, task_name FROM block_plan WHERE boat_id = ?"
+        )
+        .bind(boat_id)
+        .fetch_all(&state.db.pool)
+        .await?
+    } else {
+        sqlx::query_as(
+            "SELECT id, boat_id, task_name FROM block_plan"
+        )
+        .fetch_all(&state.db.pool)
+        .await?
+    };
+    
+    let plans: Vec<serde_json::Value> = rows.iter().map(|r| {
+        serde_json::json!({
+            "id": r.0,
+            "boat_id": r.1,
+            "task_name": r.2,
+        })
+    }).collect();
+
+    Ok(Json(ApiResponse::success(plans)))
+}
+
+#[derive(Deserialize)]
+pub struct AddBlockPlanRequest {
+    pub boat_id: String,
+    pub task_name: Option<String>,
+    pub create_address: Option<String>,
+    pub route: Option<String>,
+    pub polygon: Option<String>,
+    pub course_spacing: Option<f64>,
+    pub course_angle: Option<f64>,
+    pub complete_action: Option<String>,
+}
+
+async fn add_block_plan(
+    State(state): State<AppState>,
+    Json(req): Json<AddBlockPlanRequest>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let plan_id = uuid::Uuid::new_v4().to_string();
+
+    sqlx::query(
+        "INSERT INTO block_plan (id, boat_id, task_name, create_address, route, polygon, course_spacing, course_angle, complete_action, add_time) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+    )
+    .bind(&plan_id)
+    .bind(&req.boat_id)
+    .bind(&req.task_name)
+    .bind(&req.create_address)
+    .bind(&req.route)
+    .bind(&req.polygon)
+    .bind(&req.course_spacing)
+    .bind(&req.course_angle)
+    .bind(&req.complete_action)
+    .execute(&state.db.pool)
+    .await?;
+
+    Ok(Json(ApiResponse::success(serde_json::json!({
+        "plan_id": plan_id,
+    }))))
+}
+
+#[derive(Deserialize)]
+pub struct UpdateBlockPlanRequest {
+    pub id: String,
+    pub task_name: Option<String>,
+    pub route: Option<String>,
+    pub polygon: Option<String>,
+    pub course_spacing: Option<f64>,
+    pub course_angle: Option<f64>,
+    pub complete_action: Option<String>,
+}
+
+async fn update_block_plan(
+    State(state): State<AppState>,
+    Json(req): Json<UpdateBlockPlanRequest>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    sqlx::query(
+        "UPDATE block_plan SET 
+         task_name = COALESCE(?, task_name),
+         route = COALESCE(?, route),
+         polygon = COALESCE(?, polygon),
+         course_spacing = COALESCE(?, course_spacing),
+         course_angle = COALESCE(?, course_angle),
+         complete_action = COALESCE(?, complete_action),
+         update_time = NOW()
+         WHERE id = ?"
+    )
+    .bind(&req.task_name)
+    .bind(&req.route)
+    .bind(&req.polygon)
+    .bind(&req.course_spacing)
+    .bind(&req.course_angle)
+    .bind(&req.complete_action)
+    .bind(&req.id)
+    .execute(&state.db.pool)
+    .await?;
+
+    Ok(Json(ApiResponse::success(serde_json::json!({
+        "updated": true,
+    }))))
+}
+
+async fn delete_block_plan(
+    State(state): State<AppState>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<serde_json::Value>>, AppError> {
+    let id = params.get("id")
+        .ok_or_else(|| AppError::BadRequest("缺少id参数".to_string()))?;
+
+    sqlx::query("DELETE FROM block_plan WHERE id = ?")
         .bind(id)
         .execute(&state.db.pool)
         .await?;

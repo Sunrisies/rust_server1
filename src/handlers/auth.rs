@@ -9,10 +9,14 @@ use tracing::{info, error};
 /// 登录请求
 #[derive(Deserialize)]
 pub struct LoginMessage {
-    #[serde(alias = "userName", alias = "username")]
+    #[serde(rename = "userName", alias = "username", default)]
     pub username: String,
-    #[serde(alias = "passWord", alias = "password")]
+    #[serde(rename = "passWord", alias = "password", default)]
     pub password: String,
+    #[serde(rename = "verifyCode", default)]
+    pub verify_code: Option<String>,
+    #[serde(rename = "userKey", default)]
+    pub user_key: Option<String>,
 }
 
 /// 登录响应
@@ -49,19 +53,18 @@ pub async fn login(
         })));
     }
     
-    // 解密密码（支持RSA和明文）
-    let decrypted_pwd = if login_message.password.len() > 50 {
-        // 可能是RSA加密的密码，尝试解密
-        match crate::rsa_util::get_rsa_util().decrypt(&login_message.password) {
-            Ok(pwd) => pwd,
-            Err(_) => {
-                // 解密失败，可能是明文密码
-                login_message.password.clone()
-            }
+    // Java 版本要求 passWord 必须是 RSA 加密内容，解密失败直接返回解析异常。
+    let decrypted_pwd = match crate::rsa_util::get_rsa_util().decrypt(&login_message.password) {
+        Ok(pwd) if !pwd.trim().is_empty() => pwd,
+        _ => {
+            return Ok(Json(serde_json::json!({
+                "code": 0,
+                "msg": "解析异常...",
+                "data": null,
+                "count": null,
+                "obj": null,
+            })));
         }
-    } else {
-        // 明文密码
-        login_message.password.clone()
     };
     // 查询用户
     let user_row: Option<sqlx::mysql::MySqlRow> = sqlx::query(
@@ -176,7 +179,7 @@ pub async fn login(
 
 /// 获取公钥
 pub async fn get_public_key() -> Result<Json<serde_json::Value>, AppError> {
-    let public_key = crate::rsa_util::get_rsa_util().get_public_key_pem();
+    let public_key = crate::rsa_util::get_rsa_util().get_public_key_base64();
     
     Ok(Json(serde_json::json!({
         "code": 1,
@@ -219,9 +222,13 @@ pub async fn verify_token(
 /// 退出登录
 pub async fn logout(
     State(state): State<AppState>,
-    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Json<serde_json::Value>, AppError> {
-    let token = params.get("token").map(|s| s.as_str()).unwrap_or("");
+    // Java 从请求头 token 读取；query 仅作为兼容兜底。
+    let token = headers
+        .get("token")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
     
     if !token.is_empty() {
         if let Ok(Some(token_message)) = crate::session::get_session().get_session(token).await {

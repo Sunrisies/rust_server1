@@ -1,5 +1,6 @@
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use rsa::pkcs8::{EncodePublicKey, EncodePrivateKey, LineEnding};
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use rand::thread_rng;
 use std::sync::OnceLock;
 
@@ -23,11 +24,12 @@ impl RsaUtil {
         }
     }
     
-    /// 获取公钥（PEM格式）
-    pub fn get_public_key_pem(&self) -> String {
-        self.public_key
-            .to_public_key_pem(LineEnding::LF)
-            .expect("failed to encode public key")
+    /// Java RSAUtils.getPublicKey()：返回 X509 DER 的 Base64，不带 PEM 头尾。
+    pub fn get_public_key_base64(&self) -> String {
+        let der = self.public_key
+            .to_public_key_der()
+            .expect("failed to encode public key");
+        STANDARD.encode(der.as_ref())
     }
     
     /// 加密数据

@@ -48,8 +48,13 @@ pub fn create_router(state: AppState) -> Router {
         .route("/admin/user/deleteUser", post(user::delete))
         .route("/admin/user/update/account/profile", post(user::update_profile))
         .route("/admin/user/update/account/password", post(user::update_password))
+        .route("/admin/user/update/account/profileAndPasswrd", post(user::update_profile_and_password))
         .route("/admin/user/bindBoat", post(user::bind_boat))
         .route("/admin/user/notBindboat", post(user::unbind_boat))
+        .route("/admin/user/bindCommonPermission", post(user::bind_common_permission))
+        .route("/admin/user/notBindCommonPermission", post(user::unbind_common_permission))
+        .route("/admin/user/queryUserByUserName", post(user::query_by_username))
+        .route("/admin/user/queryUserByUserNameX", post(user::query_user_detail))
         
         // ==================== 船只管理 (/admin/node/*) ====================
         .route("/admin/node/queryAllNode", post(node::query_all))
